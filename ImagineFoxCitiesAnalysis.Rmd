@@ -1,0 +1,116 @@
+---
+title: "FoxCitiesCommunity"
+author: "Colin Catlin"
+date: "September 9, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+setwd("C:/Users/C011847/Documents/Primary/ImagineFoxCities")
+
+communitySurvey <- read.csv("CommunitySurvey.csv", stringsAsFactors = FALSE)
+# Modify data types
+communitySurvey$StartDate <- as.Date(communitySurvey$StartDate)
+communitySurvey$EndDate <- as.Date(communitySurvey$EndDate)
+communitySurvey$Race <- as.factor(communitySurvey$Race)
+communitySurvey$Gender <- as.factor(communitySurvey$Gender)
+communitySurvey$Community <- as.factor(communitySurvey$Community)
+communitySurvey$AgeGroup <- as.factor(communitySurvey$AgeGroup)
+
+# Combine Hispanic/Latino because they are a small group to begin with
+communitySurvey$HispanicLatino <- ifelse(tolower(communitySurvey$Hispanic) %in% c("hispanic", "latino"), "HispanicLatino", "NotHispanicLatino")
+
+# Separate date components
+communitySurvey$SurveyMonth <- lubridate::month(communitySurvey$EndDate)
+communitySurvey$SurveyWDay <- lubridate::wday(communitySurvey$EndDate, labe = TRUE)
+
+# Scale ladders to have the same 1 - 5 scale as the other questions (why did they do 1 - 10??)
+communitySurvey$Ladder <- communitySurvey$Ladder / 2
+communitySurvey$Ladder2 <- communitySurvey$Ladder2 / 2
+communitySurvey$LadderFuture <- communitySurvey$LadderFuture / 2
+communitySurvey$LadderFuture2 <- communitySurvey$LadderFuture2 / 2
+
+# Clean up text - remove symbols, clean whitespace, lowercase
+communitySurvey$PositiveCommunityComments <- trimws(gsub("\\s+", " ",gsub("[^[:alnum:] ]", " ", tolower(communitySurvey$PositiveCommunityComments))))
+communitySurvey$NegativeCommunityComments <- trimws(gsub("\\s+", " ",gsub("[^[:alnum:] ]", " ", tolower(communitySurvey$NegativeCommunityComments))))
+
+# Define Community Outlook based on Current vs Future Outlook
+communitySurvey$CommunityOptimism <- ifelse(communitySurvey$CommunityWellBeingRating < communitySurvey$FutureCommunityRating, 1 , 0)
+communitySurvey$CommunityPessimism <- ifelse(communitySurvey$CommunityWellBeingRating > communitySurvey$FutureCommunityRating, 1 , 0)
+communitySurvey$CommunityContinuity <- ifelse(communitySurvey$CommunityWellBeingRating == communitySurvey$FutureCommunityRating, 1 , 0)
+
+# Define Personal outlook based on Current vs Future
+communitySurvey$PersonalOptimism <- ifelse(communitySurvey$Ladder < communitySurvey$LadderFuture, 1 , 0)
+communitySurvey$PersonalPessimism <- ifelse(communitySurvey$Ladder > communitySurvey$LadderFuture, 1 , 0)
+communitySurvey$PersonalContinuinty <- ifelse(communitySurvey$Ladder == communitySurvey$LadderFuture, 1 , 0)
+```
+
+```{r}
+library(caret)
+dmy <- dummyVars(" ~ AgeGroup + Gender + Race + Community", data = communitySurvey)
+communitySurveyEncoded <- data.frame(predict(dmy, newdata = communitySurvey))
+communitySurveyEncoded <- cbind(communitySurvey, communitySurveyEncoded)
+
+# write.csv(communitySurveyEncoded, "CommunitySurveyEncoded.csv", row.names = FALSE)
+```
+
+
+```{r}
+communityConversations <- read.csv("CommunityConversations.csv", stringsAsFactors = FALSE)
+communityConversations$Date <- as.Date(communityConversations$Date)
+
+communityConversations$Sub.Condition <- as.factor(communityConversations$Sub.Condition)
+
+
+# Consolidate variations of the same Questions
+communityConversations$Question.Tag <- ifelse(communityConversations$Question.Tag %in% c("Bold Ideas/opportunities for innovation?","Strategies that can spread?","Ideas/opportunities for innovation?"), "Ideas for Innovation", communityConversations$Question.Tag)
+communityConversations$Question.Tag <- as.factor(communityConversations$Question.Tag)
+
+# Clean up all the million Thrivent room locations into one
+communityConversations$Location <- ifelse(grepl("thrivent", tolower(communityConversations$Location)), "Thrivent", communityConversations$Location)
+communityConversations$Location <- ifelse(communityConversations$Location %in% c("0","#REF!","", " ", "Select One"), "Unknown", communityConversations$Location)
+communityConversations$Location <- as.factor(communityConversations$Location)
+
+# Clean up the conditions where blank
+communityConversations$Seven.Vital.Conditions <- ifelse( communityConversations$Seven.Vital.Conditions %in% c("0","#REF!","", " ", "Select One"), "Not Marked", trimws( communityConversations$Seven.Vital.Conditions))
+communityConversations$Seven.Vital.Conditions <- as.factor( communityConversations$Seven.Vital.Conditions)
+
+# Basic string cleaning
+communityConversations$Response <- trimws(gsub("\\s+", " ",gsub("[^[:alnum:] ]", " ", tolower(communityConversations$Response))))
+
+communityConversations$Tags <- trimws(gsub("\\s+", " ",gsub("[^[:alnum:] ]", " ", tolower(communityConversations$Tags))))
+
+# write.csv(communityConversations, "CommunityConversationsCleaned.csv", row.names = FALSE)
+```
+
+```{r}
+ruralCommunities <- c("Woodville", "Kaukauna", "Vandenbroek", "Ellington", "Clayton")
+nrow(communitySurvey[communitySurvey$Community %in% ruralCommunities,])
+
+bigThree <- c("Appleton", "Grand Chute", "Neenah")
+nrow(communitySurvey[communitySurvey$Community %in% bigThree,])
+```
+```{r}
+communitySurvey %>% group_by(Gender) %>% summarize(PercentResponse = n()/nrow(communitySurvey))
+```
+
+```{r}
+communitySurvey %>% group_by(Race, HispanicLatino) %>% summarize(PercentResponse = n()/nrow(communitySurvey))
+```
+
+
+```{r, dpi = 300}
+communitySurveyEncoded %>% group_by(SurveyWDay) %>% summarise(Avg_Community_Optimism = as.integer(mean(CommunityOptimism, na.rm = T) * 100), count = n()) %>% ggplot(aes(x = SurveyWDay, y = Avg_Community_Optimism)) + geom_line(group = 1) + theme_bw() + ggtitle("Daily Change in % of Responses Predicting Higher Future Community Wellness") + ylab("Optimistic Responses, % of Total")
+```
+*Tuesday has the most responses (over 700), while Saturday (about 200) and Sunday (about 75) are the lowest.*
+
+
+
+# Issues:
+* Sarcasm in answers
