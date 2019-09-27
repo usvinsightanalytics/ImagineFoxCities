@@ -16,8 +16,8 @@ setwd("C:/Users/C011847/Documents/Primary/ImagineFoxCities")
 
 communitySurvey <- read.csv("CommunitySurvey.csv", stringsAsFactors = FALSE)
 # Modify data types
-communitySurvey$StartDate <- as.Date(communitySurvey$StartDate)
-communitySurvey$EndDate <- as.Date(communitySurvey$EndDate)
+communitySurvey$StartDate <- as.Date(communitySurvey$StartDate) # , format = '%m/%d/%Y'
+communitySurvey$EndDate <- as.Date(communitySurvey$EndDate, format = '%m/%d/%Y')
 communitySurvey$Race <- as.factor(communitySurvey$Race)
 communitySurvey$Gender <- as.factor(communitySurvey$Gender)
 communitySurvey$Community <- as.factor(communitySurvey$Community)
@@ -35,6 +35,14 @@ communitySurvey$Ladder <- communitySurvey$Ladder / 2
 communitySurvey$Ladder2 <- communitySurvey$Ladder2 / 2
 communitySurvey$LadderFuture <- communitySurvey$LadderFuture / 2
 communitySurvey$LadderFuture2 <- communitySurvey$LadderFuture2 / 2
+communitySurvey <- communitySurvey %>% mutate(PersonalRating = Ladder,
+                                                     PersonalFutureRating = LadderFuture)
+communitySurvey$Thriving <- ifelse(((communitySurvey$Ladder >= (7/2)) & (communitySurvey$LadderFuture >= (8/2))), 1, 0)
+communitySurvey$Suffering <- ifelse(((communitySurvey$Ladder <= (4/2)) | (communitySurvey$LadderFuture <= (4/2))), 1, 0)
+communitySurvey$Struggling <- ifelse(((communitySurvey$Thriving != 1) & (communitySurvey$Suffering != 1)), 1, 0)
+communitySurvey$Wellbeing <- ifelse(communitySurvey$Thriving == 1, "Thriving",
+                                ifelse(communitySurvey$Suffering == 1, "Suffering", "Struggling"))
+communitySurvey$Wellbeing <- as.factor(communitySurvey$Wellbeing)
 
 # Clean up text - remove symbols, clean whitespace, lowercase
 communitySurvey$PositiveCommunityComments <- trimws(gsub("\\s+", " ",gsub("[^[:alnum:] ]", " ", tolower(communitySurvey$PositiveCommunityComments))))
@@ -48,7 +56,11 @@ communitySurvey$CommunityContinuity <- ifelse(communitySurvey$CommunityWellBeing
 # Define Personal outlook based on Current vs Future
 communitySurvey$PersonalOptimism <- ifelse(communitySurvey$Ladder < communitySurvey$LadderFuture, 1 , 0)
 communitySurvey$PersonalPessimism <- ifelse(communitySurvey$Ladder > communitySurvey$LadderFuture, 1 , 0)
-communitySurvey$PersonalContinuinty <- ifelse(communitySurvey$Ladder == communitySurvey$LadderFuture, 1 , 0)
+communitySurvey$PersonalContinuity <- ifelse(communitySurvey$Ladder == communitySurvey$LadderFuture, 1 , 0)
+communitySurvey$Outlook <- ifelse(communitySurvey$PersonalOptimism == 1, "Optimism",
+                             ifelse(communitySurvey$PersonalPessimism == 1, "Pessimism", "Continuity"))
+communitySurvey$Outlook <- as.factor(communitySurvey$Outlook)
+
 ```
 
 ```{r}
@@ -65,9 +77,6 @@ communitySurveyEncoded <- cbind(communitySurvey, communitySurveyEncoded)
 communityConversations <- read.csv("CommunityConversations.csv", stringsAsFactors = FALSE)
 communityConversations$Date <- as.Date(communityConversations$Date)
 
-communityConversations$Sub.Condition <- as.factor(communityConversations$Sub.Condition)
-
-
 # Consolidate variations of the same Questions
 communityConversations$Question.Tag <- ifelse(communityConversations$Question.Tag %in% c("Bold Ideas/opportunities for innovation?","Strategies that can spread?","Ideas/opportunities for innovation?"), "Ideas for Innovation", communityConversations$Question.Tag)
 communityConversations$Question.Tag <- as.factor(communityConversations$Question.Tag)
@@ -80,13 +89,20 @@ communityConversations$Location <- as.factor(communityConversations$Location)
 # Clean up the conditions where blank
 communityConversations$Seven.Vital.Conditions <- ifelse( communityConversations$Seven.Vital.Conditions %in% c("0","#REF!","", " ", "Select One"), "Not Marked", trimws( communityConversations$Seven.Vital.Conditions))
 communityConversations$Seven.Vital.Conditions <- as.factor( communityConversations$Seven.Vital.Conditions)
+communityConversations$Sub.Condition <- ifelse(communityConversations$Sub.Condition %in% c("0","#REF!","", " ", "Select One"), "Not Marked", trimws(communityConversations$Sub.Condition))
+communityConversations$AssignedCondition <- substr(communityConversations$Sub.Condition, 1 ,3)
+communityConversations$Sub.Condition <- as.factor(communityConversations$Sub.Condition)
+# Assigned by one of the peeps
+communityConversations$AssignedCondition <- ifelse(communityConversations$AssignedCondition == 'B&C', 'Belonging & Civic Muscle (B&CM)', ifelse(communityConversations$AssignedCondition == 'H&S', 'Health & Safety (H&S)', ifelse(communityConversations$AssignedCondition == 'HE-', 'Healthy Environment (HE)', ifelse(communityConversations$AssignedCondition == 'HH-', 'Humane Housing (HH)', ifelse(communityConversations$AssignedCondition == 'LL-', 'Lifelong Learning (LL)', ifelse(communityConversations$AssignedCondition == 'RT-', 'Reliable Transportation (RT)', ifelse(communityConversations$AssignedCondition == 'W&F', 'Work & Financial Health (W&FH)', "Not Marked")))))))
+communityConversations$AssignedCondition <- factor(communityConversations$AssignedCondition, levels = levels((communityConversations$Seven.Vital.Conditions)))
+
 
 # Basic string cleaning
 communityConversations$Response <- trimws(gsub("\\s+", " ",gsub("[^[:alnum:] ]", " ", tolower(communityConversations$Response))))
 
 communityConversations$Tags <- trimws(gsub("\\s+", " ",gsub("[^[:alnum:] ]", " ", tolower(communityConversations$Tags))))
 
-# write.csv(communityConversations, "CommunityConversationsCleaned.csv", row.names = FALSE)
+write.csv(communityConversations, "CommunityConversationsCleaned.csv", row.names = FALSE)
 ```
 
 ```{r}
