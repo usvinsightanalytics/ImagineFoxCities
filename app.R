@@ -59,7 +59,7 @@ ui <- navbarPage("Imagine Fox Cities",
   tabPanel("Wellbeing by Demographic",
    titlePanel("Average (Mean) Wellbeing by Demographic Group"),
     mainPanel(
-       dataTableOutput("DemographicWellfare"),
+       DT::dataTableOutput("DemographicWellfare"),
        downloadButton("downloadDemographicData", "Download Table"),
        HTML(paste(h5("Note: the meaning of ratings may vary by community group a 3 (out of 5) may mean different (better or worse) things to different groups."), #'<br/>',
                   h5("PersonalRating is the Cantril Scale (question asked 0-10 but here scaled from 0-5) used with the FutureRating to generate Thriving/Struggling/Suffering https://news.gallup.com/poll/122453/understanding-gallup-uses-cantril-scale.aspx"),
@@ -110,9 +110,9 @@ ui <- navbarPage("Imagine Fox Cities",
           div(downloadButton("downloadCommentWordCloud", "Download Wordcloud: layout changes randomly on download"), align = 'center'),
           conditionalPanel(
             condition = "input.TopicModelShow == 'Yes'",
-            plotOutput("TopicModeling") # dataTableOutput plotOutput
+            plotOutput("TopicModeling") # DT::dataTableOutput plotOutput
           ),
-          dataTableOutput("TopWords")
+          DT::dataTableOutput("TopWords")
          )
         )
      ),
@@ -123,24 +123,24 @@ ui <- navbarPage("Imagine Fox Cities",
               c("Self-Reported" = 'Seven.Vital.Conditions', "Assigned" = 'AssignedCondition', "Assigned -Sub Conditions" = 'Sub.Condition'), selected = "AssignedCondition"),align='center'),
            plotOutput("ConversationWordCloud", width = "100%"),
            div(downloadButton("downloadConversationWordCloud", "Download Wordcloud: layout changes randomly on download"), align = 'center'),
-           # dataTableOutput("ConversationTopWords"),
+           # DT::dataTableOutput("ConversationTopWords"),
            plotOutput("Sentiment", width = "100%"),
            div(selectInput("ShowTopWordTable", "Show Conversation Top Words", c("Yes", "No"), selected = "No"), align = 'center'),
            conditionalPanel(
              condition = "input.ShowTopWordTable == 'Yes'",
-             dataTableOutput("ConversationTopWords")
+             DT::dataTableOutput("ConversationTopWords")
            ),
            div(selectInput("ShowTable", "Show Conversation Summaries", c("Yes", "No"), selected = "No"), align = 'center'),
            conditionalPanel(
              condition = "input.ShowTable == 'Yes'",
-             dataTableOutput("Conversations")
+             DT::dataTableOutput("Conversations")
            )
   )
 )
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-   output$DemographicWellfare <- renderDataTable({
+   output$DemographicWellfare <- DT::renderDataTable({
      communitySurveyEncodedSummary
    }, options = list(pageLength = 10))
    output$downloadDemographicData <- downloadHandler(
@@ -207,7 +207,7 @@ server <- function(input, output) {
      }
      localCSE
    })
-   output$TopWords <- renderDataTable({
+   output$TopWords <- DT::renderDataTable({
      comments <- localCSE_reactive()
      rbind(
      comments %>% unnest_tokens(word, Comments) %>%
@@ -250,7 +250,7 @@ server <- function(input, output) {
    output$TestWordCloud <- renderPlot({
      CommentWordcloud()
    })
-   output$TopicModeling <- renderPlot({ # renderDataTable renderPlot
+   output$TopicModeling <- renderPlot({ # DT::renderDataTable renderPlot
      comments <- localCSE_reactive()
      chapters_dtm <- comments %>% unnest_tokens(word, Comments) %>%
        anti_join(stop_words) %>%
@@ -312,7 +312,7 @@ server <- function(input, output) {
    output$ConversationWordCloud <- renderPlot({
      ConversationWordcloud()
    })
-   output$ConversationTopWords <- renderDataTable({
+   output$ConversationTopWords <- DT::renderDataTable({
      comments3 <- localConversation_reactive()
      comments3$Response <- as.character(comments3$Response)
      rbind(
@@ -367,7 +367,7 @@ server <- function(input, output) {
          xlim(-2.5, 2.5)
        grid.arrange(g1, g2, nrow = 2, ncol=1, heights = c(1, 4))
      })
-     output$Conversations <- renderDataTable({
+     output$Conversations <- DT::renderDataTable({
        localConversation_reactive()
      })
      
