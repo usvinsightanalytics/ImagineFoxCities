@@ -14,7 +14,7 @@ library(ggplot2)
 ```{r}
 setwd("C:/Users/C011847/Documents/Primary/ImagineFoxCities")
 
-communitySurvey <- read.csv("CommunitySurvey.csv", stringsAsFactors = FALSE)
+communitySurvey <- read.csv("CommunitySurvey.csv", stringsAsFactors = FALSE, na.strings = c("N/A"))
 # Modify data types
 communitySurvey$StartDate <- as.Date(communitySurvey$StartDate) # , format = '%m/%d/%Y'
 communitySurvey$EndDate <- as.Date(communitySurvey$EndDate, format = '%m/%d/%Y')
@@ -75,7 +75,7 @@ communitySurveyEncoded <- cbind(communitySurvey, communitySurveyEncoded)
 
 ```{r}
 communityConversations <- read.csv("CommunityConversations.csv", stringsAsFactors = FALSE)
-communityConversations$Date <- as.Date(communityConversations$Date)
+communityConversations$Date <- as.Date(communityConversations$Date, format = '%m/%d/%Y')
 
 # Consolidate variations of the same Questions
 communityConversations$Question.Tag <- ifelse(communityConversations$Question.Tag %in% c("Bold Ideas/opportunities for innovation?","Strategies that can spread?","Ideas/opportunities for innovation?"), "Ideas for Innovation", communityConversations$Question.Tag)
